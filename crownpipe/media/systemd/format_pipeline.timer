@@ -1,0 +1,9 @@
+[Unit]
+Description=Run format pipeline every 2 minutes
+
+[Timer]
+OnBootSec=90
+OnUnitActiveSec=120
+
+[Install]
+WantedBy=timers.target

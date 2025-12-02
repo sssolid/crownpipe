@@ -1,0 +1,69 @@
+# Image Output Format Specifications
+# Original cropped formats (PNG/TIFF with transparency)
+- name: original_300dpi_png
+  format: PNG
+  dpi: 300
+  background: null
+  resize: null
+  resize_longest: null
+  extent: null
+  border: [0, 0]
+  mode: RGBA
+  brand_icon: null
+  icon_offset: [15, 15]
+  watermark: null
+
+- name: original_300dpi_tiff
+  format: TIFF
+  dpi: 300
+  background: null
+  resize: null
+  resize_longest: null
+  extent: null
+  border: [0, 0]
+  mode: RGBA
+  brand_icon: null
+  icon_offset: [15, 15]
+  watermark: null
+
+# High resolution formats (2500px)
+- name: 2500_longest_300dpi_tiff
+  format: TIFF
+  dpi: 300
+  background: white
+  resize: null
+  resize_longest: 2500
+  extent: null
+  border: [15, 15]
+  mode: RGB
+  brand_icon: null
+  icon_offset: [15, 15]
+  watermark: null
+
+# Web-ready formats (1000px, 72 DPI)
+- name: 1000x1000_72dpi_jpeg
+  format: JPEG
+  dpi: 72
+  background: white
+  resize: [1000, 1000]
+  resize_longest: null
+  extent: [1000, 1000]
+  border: [15, 15]
+  mode: RGB
+  brand_icon: null
+  icon_offset: [15, 15]
+  watermark: null
+
+# Thumbnail formats
+- name: 128x128_72dpi_jpeg
+  format: JPEG
+  dpi: 72
+  background: white
+  resize: [128, 128]
+  resize_longest: null
+  extent: [128, 128]
+  border: [5, 5]
+  mode: RGB
+  brand_icon: null
+  icon_offset: [15, 15]
+  watermark: null

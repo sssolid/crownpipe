@@ -1,0 +1,18 @@
+[Unit]
+Description=Media Pipeline Web Dashboard
+After=network.target
+
+[Service]
+Type=simple
+User=crown-pipeline
+Group=marketing
+Environment=HOME=/home/crown-pipeline
+Environment=PYTHONPATH=/opt/crownpipe
+Environment=FLASK_APP=dashboard.py
+WorkingDirectory=/opt/crownpipe
+ExecStart=/opt/crownpipe/venv/bin/python3 /opt/crownpipe/bin/media-dashboard
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

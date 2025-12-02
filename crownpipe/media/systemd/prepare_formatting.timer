@@ -1,0 +1,9 @@
+[Unit]
+Description=Run prepare_formatting every minute
+
+[Timer]
+OnBootSec=75
+OnUnitActiveSec=60
+
+[Install]
+WantedBy=timers.target
