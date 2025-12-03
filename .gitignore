@@ -27,6 +27,9 @@ ENV/
 env/
 .venv/
 
+# Java
+*.jar
+
 # IDEs
 .vscode/
 .idea/
@@ -35,6 +38,7 @@ env/
 *~
 
 # Secrets
+.env
 .pgpass
 *.pem
 *.key

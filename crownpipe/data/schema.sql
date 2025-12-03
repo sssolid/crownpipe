@@ -19,7 +19,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA staging
 ALTER DEFAULT PRIVILEGES IN SCHEMA staging
   GRANT USAGE,SELECT,UPDATE ON SEQUENCES TO crown_admin;
 
-CREATE TABLE staging.raw_file (
+CREATE TABLE IF NOT EXISTS staging.raw_file (
     id SERIAL PRIMARY KEY,
     file_name TEXT NOT NULL,
     file_date DATE NOT NULL,
@@ -27,7 +27,7 @@ CREATE TABLE staging.raw_file (
     row_count INTEGER
 );
 
-CREATE TABLE staging.raw_row (
+CREATE TABLE IF NOT EXISTS staging.raw_row (
     id BIGSERIAL PRIMARY KEY,
     file_id INTEGER REFERENCES staging.raw_file(id) ON DELETE CASCADE,
     row_data JSONB NOT NULL
@@ -61,3 +61,95 @@ CREATE TABLE IF NOT EXISTS staging.product_history_file (
     processed_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
     snapshots_added INTEGER     NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS staging.product_latest (
+    number TEXT PRIMARY KEY,
+    data JSONB NOT NULL,
+    file_date DATE NOT NULL,
+    date_modified TIMESTAMP NULL,
+    row_hash CHAR(64) NOT NULL
+);
+
+CREATE OR REPLACE FUNCTION staging.filter_latest_json(j JSONB)
+RETURNS JSONB AS $$
+BEGIN
+    RETURN j - 'toggle_select' - 'vehicle_model';
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+INSERT INTO staging.product_latest (number, data, file_date, date_modified, row_hash)
+SELECT
+    ph.number,
+    staging.filter_latest_json(ph.data),
+    ph.file_date,
+    ph.date_modified,
+    ph.row_hash
+FROM (
+    SELECT DISTINCT ON (number) *
+    FROM staging.product_history
+    WHERE is_current = TRUE
+    ORDER BY number, file_date DESC
+) ph;
+
+CREATE INDEX IF NOT EXISTS idx_product_latest_number
+    ON staging.product_latest (number);
+
+CREATE INDEX IF NOT EXISTS idx_product_latest_row_hash
+    ON staging.product_latest (row_hash);
+
+CREATE OR REPLACE FUNCTION staging.jsonb_diff(a JSONB, b JSONB)
+RETURNS JSONB AS $$
+DECLARE
+    result JSONB := '{}'::jsonb;
+    key TEXT;
+    val_a JSONB;
+    val_b JSONB;
+BEGIN
+    FOR key IN SELECT jsonb_object_keys(a)
+    LOOP
+        val_a := a -> key;
+        val_b := b -> key;
+
+        IF val_b IS NULL THEN
+            result := result || jsonb_build_object(key, jsonb_build_object('from', val_a, 'to', NULL));
+        ELSIF val_a IS DISTINCT FROM val_b THEN
+            result := result || jsonb_build_object(key, jsonb_build_object('from', val_a, 'to', val_b));
+        END IF;
+    END LOOP;
+
+    FOR key IN SELECT jsonb_object_keys(b)
+    LOOP
+        IF a -> key IS NULL THEN
+            result := result || jsonb_build_object(key, jsonb_build_object('from', NULL, 'to', b -> key));
+        END IF;
+    END LOOP;
+
+    RETURN result;
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- # Get all snapshots for a product
+-- SELECT *
+-- FROM staging.product_history
+-- WHERE number = 'PRODUCT_NUMBER'
+-- ORDER BY file_date, date_modified;
+
+-- # Get the current snapshot for a product
+-- SELECT *
+-- FROM staging.product_history
+-- WHERE number = 'PRODUCT_NUMBER' AND is_current = TRUE;
+
+-- # Get the diff between two snapshots
+-- WITH versions AS (
+--     SELECT *,
+--            ROW_NUMBER() OVER (PARTITION BY number ORDER BY file_date DESC, id DESC) AS rn
+--     FROM staging.product_history
+--     WHERE number = 'PRODUCT_NUMBER'
+-- )
+-- SELECT staging.jsonb_diff(
+--            staging.filter_latest_json(v2.data),
+--            staging.filter_latest_json(v1.data)
+--        ) AS diff
+-- FROM versions v1       -- latest
+-- JOIN versions v2 ON v1.number = v2.number AND v2.rn = v1.rn + 1   -- previous snapshot
+-- WHERE v1.rn = 1;      -- latest record
