@@ -1,4 +1,15 @@
-* * * * * root python /opt/crownpipe/pipeline/rename_incoming.py >> /var/log/crownpipe/rename.log 2>&1
-*/2 * * * * root python /opt/crownpipe/pipeline/bgremove.py >> /var/log/crownpipe/bgremove.log 2>&1
-*/5 * * * * root python /opt/crownpipe/pipeline/format_pipeline.py >> /var/log/crownpipe/format.log 2>&1
-*/10 * * * * root python /opt/crownpipe/pipeline/deploy_production.py >> /var/log/crownpipe/deploy.log 2>&1
+# CrownPipe cron jobs for Docker environment
+# Runs every minute
+* * * * * root cd /opt/crownpipe && /opt/venv/bin/python bin/media-rename-incoming >> /var/log/crownpipe/rename.log 2>&1
+
+# Runs every 2 minutes
+*/2 * * * * root cd /opt/crownpipe && /opt/venv/bin/python bin/media-bgremove >> /var/log/crownpipe/bgremove.log 2>&1
+
+# Runs every 2 minutes
+*/2 * * * * root cd /opt/crownpipe && /opt/venv/bin/python bin/media-prepare-formatting >> /var/log/crownpipe/prepare.log 2>&1
+
+# Runs every 2 minutes  
+*/2 * * * * root cd /opt/crownpipe && /opt/venv/bin/python bin/media-format-pipeline >> /var/log/crownpipe/format.log 2>&1
+
+# Runs every 5 minutes
+*/5 * * * * root cd /opt/crownpipe && /opt/venv/bin/python bin/media-deploy-production >> /var/log/crownpipe/deploy.log 2>&1

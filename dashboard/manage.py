@@ -3,6 +3,9 @@
 import os
 import sys
 
+# Add project root to Python path so both 'crownpipe' and 'dashboard' are importable
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 def main():
     """Run administrative tasks."""

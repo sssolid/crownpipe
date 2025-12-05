@@ -8,26 +8,57 @@ services:
       POSTGRES_USER: crownpipe
       POSTGRES_PASSWORD: crownpipe
     volumes:
-      - ./.devcontainer/postgres:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - crownnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U crownpipe -d crown_marketing"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   dashboard:
     build:
       context: .
       dockerfile: compose/dev.Dockerfile
     image: crownpipe-dev-base:latest
+    environment:
+      - PYTHONPATH=/opt/crownpipe
+      - PG_HOST=db
+      - PG_PORT=5432
+      - PG_DATABASE=crown_marketing
+      - PG_USER=crownpipe
+      - PG_PASSWORD=crownpipe
+      - CROWNPIPE_MEDIA_BASE=/srv/media
+      - CROWNPIPE_DATA_BASE=/srv/shares/marketing/filemaker
+      - CROWNPIPE_LOG_DIR=/var/log/crownpipe
+      - CROWNPIPE_LOG_LEVEL=INFO
+      - CROWNPIPE_LOG_TO_DATABASE=true
+      - DJANGO_SECRET_KEY=dev-secret-key-change-in-production
+      - DJANGO_DEBUG=true
+      - DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
     command: >
       bash -c "
-        python /opt/crownpipe/dashboard/manage.py migrate &&
-        python /opt/crownpipe/dashboard/manage.py runserver 0.0.0.0:8000
+        set -e
+        echo 'Waiting for database...'
+        while ! pg_isready -h db -U crownpipe -d crown_marketing > /dev/null 2>&1; do
+          sleep 1
+        done
+        echo 'Database ready, running migrations...'
+        cd /opt/crownpipe
+        python dashboard/manage.py migrate --noinput
+        echo 'Collecting static files...'
+        python dashboard/manage.py collectstatic --noinput
+        echo 'Starting development server...'
+        python dashboard/manage.py runserver 0.0.0.0:8000
       "
     volumes:
-      - ./app:/opt/crownpipe/app
-      - ./.devcontainer/media:/srv/media
-      - ./.devcontainer/logs:/var/log/crownpipe
+      - .:/opt/crownpipe
+      - media_data:/srv/media
+      - log_data:/var/log/crownpipe
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "8000:8000"
     networks:
@@ -38,10 +69,22 @@ services:
       context: .
       dockerfile: compose/cron.Dockerfile
     image: crownpipe-cron:latest
+    environment:
+      - PYTHONPATH=/opt/crownpipe
+      - PG_HOST=db
+      - PG_PORT=5432
+      - PG_DATABASE=crown_marketing
+      - PG_USER=crownpipe
+      - PG_PASSWORD=crownpipe
+      - CROWNPIPE_MEDIA_BASE=/srv/media
+      - CROWNPIPE_DATA_BASE=/srv/shares/marketing/filemaker
+      - CROWNPIPE_LOG_DIR=/var/log/crownpipe
+      - CROWNPIPE_LOG_LEVEL=INFO
+      - CROWNPIPE_LOG_TO_DATABASE=true
     volumes:
-      - ./app:/opt/crownpipe
-      - ./.devcontainer/media:/srv/media
-      - ./.devcontainer/logs:/var/log/crownpipe
+      - .:/opt/crownpipe
+      - media_data:/srv/media
+      - log_data:/var/log/crownpipe
     depends_on:
       dashboard:
         condition: service_started
@@ -50,3 +93,9 @@ services:
 
 networks:
   crownnet:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  media_data:
+  log_data:

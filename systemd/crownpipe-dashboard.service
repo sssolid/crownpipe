@@ -8,7 +8,7 @@ User=crown-pipeline
 Group=marketing
 Environment=HOME=/home/crown-pipeline
 Environment=PYTHONPATH=/opt/crownpipe
-WorkingDirectory=/opt/crownpipe/dashboard
+WorkingDirectory=/opt/crownpipe
 ExecStart=/opt/crownpipe/venv/bin/gunicorn dashboard.wsgi:application --bind 0.0.0.0:8000 --workers 4
 Restart=always
 RestartSec=10
