@@ -1,11 +1,32 @@
-"""Path constants and utilities."""
-from pathlib import Path
+"""
+Path constants and utilities.
+
+All paths are loaded from configuration to support different environments.
+"""
 import os
+from pathlib import Path
+
+
+def _get_settings():
+    """Get settings, with fallback to environment variables."""
+    try:
+        from crownpipe.common.config import get_settings
+        return get_settings()
+    except Exception:
+        # Fallback if settings not available yet
+        return None
+
 
 # Base directories
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-MEDIA_BASE = Path(os.getenv('CROWNPIPE_MEDIA_BASE', '/srv/media'))
-DATA_BASE = Path(os.getenv('CROWNPIPE_DATA_BASE', '/srv/shares/marketing/filemaker'))
+
+settings = _get_settings()
+if settings:
+    MEDIA_BASE = settings.media.base_dir
+    DATA_BASE = settings.data.base_dir
+else:
+    MEDIA_BASE = Path(os.getenv('CROWNPIPE_MEDIA_BASE', '/srv/media'))
+    DATA_BASE = Path(os.getenv('CROWNPIPE_DATA_BASE', '/srv/shares/marketing/filemaker'))
 
 # Media pipeline directories
 MEDIA_INBOX = MEDIA_BASE / "inbox"

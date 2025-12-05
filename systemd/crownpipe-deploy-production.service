@@ -1,0 +1,15 @@
+[Unit]
+Description=Deploy products to production directory
+After=network.target
+
+[Service]
+Type=oneshot
+User=crown-pipeline
+Group=marketing
+Environment=HOME=/home/crown-pipeline
+Environment=PYTHONPATH=/opt/crownpipe
+WorkingDirectory=/opt/crownpipe
+ExecStart=/opt/crownpipe/bin/media-deploy-production
+
+[Install]
+WantedBy=multi-user.target

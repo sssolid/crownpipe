@@ -1,0 +1,15 @@
+[Unit]
+Description=Image formatting pipeline
+After=network.target
+
+[Service]
+Type=oneshot
+User=crown-pipeline
+Group=marketing
+Environment=HOME=/home/crown-pipeline
+Environment=PYTHONPATH=/opt/crownpipe
+WorkingDirectory=/opt/crownpipe
+ExecStart=/opt/crownpipe/bin/media-format-pipeline
+
+[Install]
+WantedBy=multi-user.target

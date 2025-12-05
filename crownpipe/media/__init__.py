@@ -1,1 +1,1 @@
-# Media module
+"""Media processing pipeline module."""

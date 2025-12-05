@@ -1,6 +1,0 @@
-# PostgreSQL password file
-# Format: hostname:port:database:username:password
-# Copy this to .pgpass and update with real credentials
-# Permissions must be 0600
-
-localhost:5432:crown_marketing:crown_admin:CHANGEME

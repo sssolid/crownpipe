@@ -1,1 +1,1 @@
-# Data module
+"""Data import and processing pipeline module."""

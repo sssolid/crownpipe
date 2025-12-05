@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+"""Entry point for FileMaker data import."""
+import sys
+sys.path.insert(0, '/opt/crownpipe')
+
+from crownpipe.common.logger import setup_logging
+from crownpipe.data.filemaker_importer import main
+
+if __name__ == "__main__":
+    setup_logging()
+    sys.exit(0 if main() else 1)

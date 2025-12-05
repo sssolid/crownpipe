@@ -1,0 +1,29 @@
+# Local environment
+.devcontainer/
+.venv/
+venv/
+env/
+__pycache__/
+*.pyc
+
+# Git
+.git/
+.gitignore
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+
+# Docker internal
+Dockerfile
+docker-compose.yml
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Python build
+*.egg-info/
+build/
+dist/

@@ -1,0 +1,4 @@
+* * * * * root python /opt/crownpipe/pipeline/rename_incoming.py >> /var/log/crownpipe/rename.log 2>&1
+*/2 * * * * root python /opt/crownpipe/pipeline/bgremove.py >> /var/log/crownpipe/bgremove.log 2>&1
+*/5 * * * * root python /opt/crownpipe/pipeline/format_pipeline.py >> /var/log/crownpipe/format.log 2>&1
+*/10 * * * * root python /opt/crownpipe/pipeline/deploy_production.py >> /var/log/crownpipe/deploy.log 2>&1

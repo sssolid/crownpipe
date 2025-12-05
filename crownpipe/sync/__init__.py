@@ -1,1 +1,1 @@
-# Sync module - placeholder for future development
+"""Sync pipeline module - placeholder for future development."""

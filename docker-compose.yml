@@ -1,0 +1,52 @@
+services:
+
+  db:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_DB: crown_marketing
+      POSTGRES_USER: crownpipe
+      POSTGRES_PASSWORD: crownpipe
+    volumes:
+      - ./.devcontainer/postgres:/var/lib/postgresql/data
+    networks:
+      - crownnet
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: compose/dev.Dockerfile
+    image: crownpipe-dev-base:latest
+    command: >
+      bash -c "
+        python /opt/crownpipe/dashboard/manage.py migrate &&
+        python /opt/crownpipe/dashboard/manage.py runserver 0.0.0.0:8000
+      "
+    volumes:
+      - ./app:/opt/crownpipe/app
+      - ./.devcontainer/media:/srv/media
+      - ./.devcontainer/logs:/var/log/crownpipe
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+    networks:
+      - crownnet
+
+  worker:
+    build:
+      context: .
+      dockerfile: compose/cron.Dockerfile
+    image: crownpipe-cron:latest
+    volumes:
+      - ./app:/opt/crownpipe
+      - ./.devcontainer/media:/srv/media
+      - ./.devcontainer/logs:/var/log/crownpipe
+    depends_on:
+      dashboard:
+        condition: service_started
+    networks:
+      - crownnet
+
+networks:
+  crownnet:

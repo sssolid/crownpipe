@@ -1,4 +1,6 @@
-"""Database connection utilities."""
+"""
+Database connection utilities with enhanced error handling.
+"""
 import os
 from contextlib import contextmanager
 from pathlib import Path
@@ -6,6 +8,8 @@ from typing import Generator
 
 import psycopg2
 from psycopg2.extensions import connection
+
+from crownpipe.common.exceptions import DatabaseError
 
 
 def get_pgpass_password(
@@ -43,21 +47,26 @@ def get_pgpass_password(
             parts = line.split(':')
             if len(parts) == 5:
                 h, p, d, u, pwd = parts
-                if h == host and p == port and d == database and u == user:
+                # Support wildcards in .pgpass
+                if ((h == '*' or h == host) and
+                    (p == '*' or p == port) and
+                    (d == '*' or d == database) and
+                    (u == '*' or u == user)):
                     return pwd
     
-    raise ValueError(f"No matching entry in .pgpass for {user}@{host}")
+    raise ValueError(f"No matching entry in .pgpass for {user}@{host}:{port}/{database}")
 
 
 @contextmanager
 def get_conn() -> Generator[connection, None, None]:
     """
-    Get PostgreSQL connection using .pgpass credentials or environment variables.
+    Get PostgreSQL connection using configuration.
     
     Connection parameters are read from:
     1. Environment variables (PG_PASSWORD, PG_HOST, etc.) - highest priority
-    2. /var/lib/postgresql/.pgpass (system pgpass)
-    3. ~/.pgpass (user pgpass)
+    2. Settings configuration
+    3. /var/lib/postgresql/.pgpass (system pgpass)
+    4. ~/.pgpass (user pgpass)
     
     Environment variables:
         PG_HOST: Database host (default: 127.0.0.1)
@@ -70,8 +79,7 @@ def get_conn() -> Generator[connection, None, None]:
         PostgreSQL connection object
         
     Raises:
-        RuntimeError: If no password source found
-        psycopg2.Error: On connection failure
+        DatabaseError: If connection cannot be established
         
     Example:
         >>> with get_conn() as conn:
@@ -79,43 +87,79 @@ def get_conn() -> Generator[connection, None, None]:
         ...         cur.execute("SELECT 1")
         ...         result = cur.fetchone()
     """
-    host = os.getenv('PG_HOST', '127.0.0.1')
-    port = os.getenv('PG_PORT', '5432')
-    database = os.getenv('PG_DATABASE', 'crown_marketing')
-    user = os.getenv('PG_USER', 'crown_admin')
+    # Try to get settings, but fall back to env vars if not available
+    try:
+        from crownpipe.common.config import get_settings
+        settings = get_settings()
+        host = os.getenv('PG_HOST', settings.database.host)
+        port = os.getenv('PG_PORT', str(settings.database.port))
+        database = os.getenv('PG_DATABASE', settings.database.database)
+        user = os.getenv('PG_USER', settings.database.user)
+        password = os.getenv('PG_PASSWORD', settings.database.password)
+    except Exception:
+        # Fall back to environment variables only
+        host = os.getenv('PG_HOST', '127.0.0.1')
+        port = os.getenv('PG_PORT', '5432')
+        database = os.getenv('PG_DATABASE', 'crown_marketing')
+        user = os.getenv('PG_USER', 'crown_admin')
+        password = os.getenv('PG_PASSWORD')
     
-    # Try environment variable first
-    password = os.getenv('PG_PASSWORD')
-    
-    # Fall back to .pgpass
+    # Try .pgpass if no password provided
     if not password:
-        # Try system pgpass
-        pgpass_path = Path('/var/lib/postgresql/.pgpass')
-        if pgpass_path.exists():
-            try:
-                password = get_pgpass_password(pgpass_path, host, port, database, user)
-            except ValueError:
-                pass
+        pgpass_paths = [
+            Path('/var/lib/postgresql/.pgpass'),
+            Path.home() / '.pgpass'
+        ]
         
-        # Try user's home directory
-        if not password:
-            home_pgpass = Path.home() / '.pgpass'
-            if home_pgpass.exists():
+        for pgpass_path in pgpass_paths:
+            if pgpass_path.exists():
                 try:
-                    password = get_pgpass_password(home_pgpass, host, port, database, user)
+                    password = get_pgpass_password(pgpass_path, host, port, database, user)
+                    break
                 except ValueError:
-                    pass
+                    continue
         
         if not password:
-            raise RuntimeError(
+            raise DatabaseError(
                 "No password source found. Set PG_PASSWORD environment variable "
-                "or create .pgpass file"
+                "or create .pgpass file",
+                context={'host': host, 'database': database, 'user': user}
             )
     
     dsn = f"host={host} port={port} dbname={database} user={user} password={password}"
     
-    conn = psycopg2.connect(dsn)
+    try:
+        conn = psycopg2.connect(dsn)
+    except psycopg2.Error as e:
+        raise DatabaseError(
+            f"Failed to connect to database: {e}",
+            context={'host': host, 'database': database, 'user': user}
+        ) from e
+    
     try:
         yield conn
+    except psycopg2.Error as e:
+        conn.rollback()
+        raise DatabaseError(
+            f"Database error: {e}",
+            context={'host': host, 'database': database}
+        ) from e
     finally:
         conn.close()
+
+
+def test_connection() -> bool:
+    """
+    Test database connection.
+    
+    Returns:
+        True if connection successful, False otherwise
+    """
+    try:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT 1")
+                cur.fetchone()
+        return True
+    except DatabaseError:
+        return False

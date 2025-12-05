@@ -1,0 +1,15 @@
+[Unit]
+Description=Prepare human-approved images for formatting
+After=network.target
+
+[Service]
+Type=oneshot
+User=crown-pipeline
+Group=marketing
+Environment=HOME=/home/crown-pipeline
+Environment=PYTHONPATH=/opt/crownpipe
+WorkingDirectory=/opt/crownpipe
+ExecStart=/opt/crownpipe/bin/media-prepare-formatting
+
+[Install]
+WantedBy=multi-user.target

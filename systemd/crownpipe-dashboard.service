@@ -1,0 +1,17 @@
+[Unit]
+Description=CrownPipe Django Dashboard
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=crown-pipeline
+Group=marketing
+Environment=HOME=/home/crown-pipeline
+Environment=PYTHONPATH=/opt/crownpipe
+WorkingDirectory=/opt/crownpipe/dashboard
+ExecStart=/opt/crownpipe/venv/bin/gunicorn dashboard.wsgi:application --bind 0.0.0.0:8000 --workers 4
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+"""Migrate JSON audit logs to database."""
+import sys
+sys.path.insert(0, '/opt/crownpipe')
+
+from crownpipe.common.logger import setup_logging
+from crownpipe.media.audit import migrate_json_audits_to_database
+
+if __name__ == "__main__":
+    setup_logging()
+    migrate_json_audits_to_database()

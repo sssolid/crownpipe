@@ -1,15 +1,23 @@
+"""FileMaker database connection via JDBC."""
 import csv
 import datetime
 import os
-import jpype
-import jaydebeapi
 
 import dotenv
+import jaydebeapi
+import jpype
 import pyodbc
 
 dotenv.load_dotenv(os.path.join(os.path.dirname(__file__), "../../.env"))
 
+
 class Filemaker:
+    """
+    FileMaker database connection manager.
+    
+    Supports both ODBC (primary) and JDBC (fallback) connections.
+    """
+    
     def __init__(self, dsn):
         self.dsn = dsn
 
@@ -22,15 +30,17 @@ class Filemaker:
         self.conn.close()
 
     def get_cursor(self):
-        # Database connection to Filemaker
+        """Get database cursor, trying ODBC first then JDBC fallback."""
+        # Try ODBC connection first
         try:
             self.conn = pyodbc.connect(self.dsn, timeout=10)
             self.conn.setencoding(encoding="utf8")
             self.cursor = self.conn.cursor()
             return self.cursor
         except Exception as e:
-            print("Filemaker dsn connection failed: {}".format(e))
+            print(f"Filemaker ODBC connection failed: {e}")
 
+        # Fallback to JDBC
         URL = f"jdbc:filemaker://{os.getenv('FILEMAKER_SERVER')}:{os.getenv('FILEMAKER_PORT')}/{os.getenv('FILEMAKER_DATABASE')}"
         jar = os.path.abspath(os.path.join(os.path.dirname(__file__), "fmjdbc.jar"))
         jvm = jpype.getDefaultJVMPath()
@@ -47,6 +57,7 @@ class Filemaker:
         return self.cursor
 
     def fetch(self, query):
+        """Execute query and return results as list of dicts."""
         self.cursor.execute(query)
         headers = [h[0] for h in self.cursor.description]
         rows = self.cursor.fetchall()
@@ -58,7 +69,7 @@ class Filemaker:
         return result
 
     def get_product_numbers(self, active=True):
-        """Get product numbers"""
+        """Get product numbers from Master table."""
         if active:
             self.query = "select AS400_NumberStripped AS number from Master where ToggleActive = 'Yes'"
         else:

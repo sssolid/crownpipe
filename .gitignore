@@ -1,3 +1,5 @@
+.devcontainer/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -49,5 +51,13 @@ env/
 # OS
 .DS_Store
 Thumbs.db
-/docs/
-.zed/
+
+# Django
+/dashboard/staticfiles/
+/dashboard/media/
+*.sqlite3
+db.sqlite3
+
+# Migrations (optional - uncomment if you want to track them)
+# */migrations/*.py
+# !*/migrations/__init__.py

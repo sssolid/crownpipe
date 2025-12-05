@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div id="stats-container" hx-get="{% url 'core:stats_api' %}" hx-trigger="every 5s" hx-swap="innerHTML">
+    {% include 'core/_stats_partial.html' %}
+</div>
+
+<div class="section">
+    <h2>System Overview</h2>
+    <p>Welcome to the CrownPipe dashboard. Monitor all pipelines from this centralized interface.</p>
+    
+    <div style="margin-top: 1rem;">
+        <a href="{% url 'media_monitor:index' %}" class="btn">View Media Pipeline</a>
+        <a href="{% url 'data_monitor:index' %}" class="btn">View Data Pipeline</a>
+        <a href="{% url 'logs:index' %}" class="btn">View Logs</a>
+    </div>
+</div>
+{% endblock %}
